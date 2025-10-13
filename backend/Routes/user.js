@@ -12,17 +12,20 @@ const userRouter= express.Router();
 userRouter.post("/signup", async (req, res) => {
     try {
    
-        
       const userName = req.body.userName;
       const firstName= req.body.firstName;
       const lastName= req.body.lastName;
       const paassword=req.body.password;
+      console.log(req.body);
+      
       const findUser= await User.findOne({userName:userName});
       if(findUser){
         return res.status(409).json({
           msg:"user Alredy exist"
         })
       }
+      console.log(userName);
+      
       if(!(userName || firstName || lastName || paassword)){
         return res.status(400).json({msg:"all field required"})
       }
@@ -61,13 +64,16 @@ userRouter.post("/signup", async (req, res) => {
   userRouter.post("/login", async (req, res) => {
     try {
       const { userName, password } = req.body;
-  
+     // console.log({ userName, password });
+      
       const findUser = await User.findOne({ userName });
       if (!findUser) {
         return res.status(401).json({
           msg: 'Invalid username or password',
         });
       }
+      
+  
   
       const isPasswordCorrect = await bcrypt.compare(password, findUser.password);
       if (!isPasswordCorrect) {
@@ -78,13 +84,14 @@ userRouter.post("/signup", async (req, res) => {
 
     
       const token = jwt.sign({ userName }, JWT_SECRET, { expiresIn: '1h' });
-      console.log(`Token generated: ${token}`);
+      //console.log(`Token generated: ${token}`);
   
       res.status(200).json({
         msg: "User login successful",
         token,
 
       });
+     
     } catch (err) {
       console.error('Error during login:', err);
       res.status(500).json({
@@ -118,35 +125,23 @@ userRouter.put("/update", usermiddleware ,async (req,res) => {
         
                 
             })
-userRouter.get("/findAs",usermiddleware, async (req,res) => {
-    
-    const userTobeFind= req.body.userTobeFind;
+userRouter.get("/findAs", usermiddleware, async (req, res) => {
+  const userTobeFind = req.query.userTobeFind || ""; // get from query params
 
-            
-    const findUser = await User.find({
-      userName: { $regex: new RegExp(userTobeFind, "i") },
-    });
-                   
-                    
-    if(findUser.length>0){
-     const users = findUser.map((u) => ({
-            userName: u.userName,
-            password: u.password,
-          }));
+  const findUser = await User.find({
+    userName: { $regex: new RegExp(userTobeFind, "i") },
+  });
 
-        
-        res.status(201).json({
-            msg:"got user",users
-        });
-    }
-    else{
-        res.status(401).json({
-            msg:"No user name"
-        })
-    }
-            
-                    
-})
+  if (findUser.length > 0) {
+    const users = findUser.map((u) => ({
+      userName: u.userName,
+    }));
+    res.status(200).json({ msg: "Users found", users });
+  } else {
+    res.status(404).json({ msg: "No user found" });
+  }
+});
+
 module.exports= {
     userRouter
 }
